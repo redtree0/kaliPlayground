@@ -1,0 +1,142 @@
+---
+
+- hosts: master
+  become: yes
+  vars:
+    - workdir : /home/vagrant/dvwa
+    # set your recaptcha https://www.google.com/recaptcha/intro/android.html
+    - recaptcha_public_key: "YOUR_PUBLIC_KEY"
+    - recaptcha_private_key: "YOUR_PRIVATE_KEY"
+  tasks:
+
+   - name: 'php7.2-gd install'
+     apt:
+        name:  'php7.2-gd'
+        state: 'present'
+
+
+   - name: 'Download DVWA in /tmp'
+     git:
+        repo: 'https://github.com/ethicalhack3r/DVWA.git'
+        dest: "{{ workdir }}"
+        version: master
+        umask : '022'
+        force: yes
+
+   - name: "Mode 755 for directory and files"
+     become: yes
+     file:
+        path: "{{ workdir }}"
+        mode: 0755
+        recurse: yes
+        owner: root
+        group: root
+        remote_src: no
+      
+   - name: "Mode 777 in dvwa/hackable"
+     become: yes
+     file:
+        path: "{{ workdir }}/hackable"
+        mode: 0777
+        recurse: yes
+        owner: root
+        group: root
+        remote_src: no   
+   
+   - name: "Mode 777 in dvwa/external/phpids/0.6/lib/IDS/tmp/phpids_log.txt"
+     become: yes
+     file:
+        path: "{{ workdir }}/external/phpids/0.6/lib/IDS/tmp/phpids_log.txt"
+        mode: 0777
+        owner: root
+        group: root
+        remote_src: no   
+
+   - name: 'copy from config.inc.php.dist to config.inc.php'
+     shell: "cp -pf {{ workdir }}/config/config.inc.php.dist {{ workdir }}/config/config.inc.php"
+   #   copy:
+   #      src: "{{ workdir }}/config/config.inc.php.dist"
+   #      dest: "{{ workdir }}/config/config.inc.php"
+   - name: '/etc/php/7.2/apache2/php.ini allow_url_include=Off => On'
+     replace:
+        path: "/etc/php/7.2/apache2/php.ini"
+        regexp: 'allow_url_include = Off' # default password
+        replace: 'allow_url_include = On'
+        backup: no
+
+   - name: '/etc/php/7.2/cli/php.ini allow_url_include=Off => On'
+     replace:
+        path: "/etc/php/7.2/cli/php.ini"
+        regexp: 'allow_url_include = Off' # default password
+        replace: 'allow_url_include = On'
+        backup: no
+
+   - name: 'config.inc.php'
+     replace:
+        path: "{{ workdir }}/config/config.inc.php"
+        regexp: 'root' # default password
+        replace: 'dvwa'
+   # - name: 'config.inc.php'
+   #   replace:
+   #      path: "{{ workdir }}/config/config.inc.php"
+   #      regexp: 'p@ssw0rd' # default password
+   #      replace: ''
+   #      backup: no
+
+   - name: 'recaptcha_public_key'
+     replace:
+        path: "{{ workdir }}/config/config.inc.php"
+        regexp: "'recaptcha_public_key' ]  = '';" # default password
+        replace: "'recaptcha_public_key' ] = '{{ recaptcha_public_key }}';"
+        backup: no
+
+   - name: 'recaptcha_private_key'
+     replace:
+        path: "{{ workdir }}/config/config.inc.php"
+        regexp: "'recaptcha_private_key' ] = '';" # default password
+        replace: "'recaptcha_private_key' ] = '{{ recaptcha_private_key }}';"
+        backup: no
+# /var/www/html/dvwa
+   - name: 'copy from /tmp/dvwa to /var/www/html/dvwa'
+     shell: "cp -rpf {{ workdir }} /var/www/html/dvwa"
+   # copy:
+   #      src: /tmp/dvwa
+   #      dest: /var/www/html/dvwa
+
+   - name: "Mysqld restart"
+     systemd:
+         state: restarted
+         name: mysql
+   
+   - name: 'create database'
+     mysql_db:
+         name: 'dvwa'
+
+   - name: 'setup mysql dvwa'
+     mysql_user:
+         name: 'dvwa'
+         password: 'p@ssw0rd'
+         host: localhost
+         priv: '*.*:ALL'
+         state: present
+
+   # - name: 'create database'
+   #   mysql_db:
+   #       name: 'dvwa'
+         # login_user: 'dvwa'
+         # login_password: 'p@ssw0rd'
+
+
+
+
+   - name: "Apache2 restart"
+     systemd:
+         state: restarted
+         name: apache2
+
+   # - name: 'reset db(dvwa) for curl'
+   #   uri:
+   #       url: http://127.0.0.1/dvwa/setup.php#
+   #       method: GET
+     
+   #   shell: "curl --data 'create db=create+%2F+Reset+Database' http://127.0.0.1/dvwa/setup.php# --cookie PHPSESSID=1"        

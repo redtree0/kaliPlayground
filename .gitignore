@@ -1,0 +1,7 @@
+.vagrant
+
+*.log
+*.retry
+
+env
+roles
