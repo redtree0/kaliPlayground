@@ -18,19 +18,19 @@ git clone 후 python 가상 실행 환경 세팅
 $ git clone https://github.com/redtree0/kaliPlayground.git
 $ cd kaliPlayground
 $ pip install virtualenv
-$ virtualenv -p python2.7 citos_env
-$ source citos_env/bin/activate
+$ virtualenv -p python2.7 env
+$ source env/bin/activate
 ```
 
 python 패키지 설치(ansible etc) 및 ansible roles 설치
 ```
-$ pip install -r requirements.txt
-$ ansible-galaxy install -r requirements.yml -p roles/
+(env) $ pip install -r requirements.txt
+(env) $ ansible-galaxy install -r requirements.yml -p roles/
 ```
 
 vm 생성
 ```
-$ vagrant up
+(env) $ vagrant up
 ```
 일정 시간 지나면 다음 VM 화면이 뜬다.
 ![boot](assets/boot.png)
@@ -123,5 +123,5 @@ firefox 브라우저 키고 http://localhost/dvwa/index.php
 ## clean
 vm 삭제
 ```
-$ vagrant destroy
+(env) $ vagrant destroy
 ```
